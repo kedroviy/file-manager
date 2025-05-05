@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-export async function listFilesAndFolders(dir: string) {
+export async function listFilesAndFolders(dir: string): Promise<string> {
     try {
         const items = await fs.readdir(dir);
         const folders: string[] = [];
@@ -18,14 +18,22 @@ export async function listFilesAndFolders(dir: string) {
             }
         }
 
-        folders.sort().forEach((folder) => {
-            console.log(`${folder}/`);
+        folders.sort();
+        files.sort();
+
+        let result = '';
+
+        folders.forEach((folder) => {
+            result += `${folder}/\n`;
         });
 
-        files.sort().forEach((file) => {
-            console.log(file);
+        files.forEach((file) => {
+            result += `${file}\n`;
         });
+
+        return result || "No files or folders found.";
     } catch (error) {
-        console.log('Operation failed: Unable to list files and folders');
+        console.error('Operation failed: Unable to list files and folders', error);
+        return "Operation failed: Unable to list files and folders.";
     }
 }

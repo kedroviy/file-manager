@@ -16,7 +16,7 @@ import { decompressFile } from './commands/decompress';
 
 interface CommandRoute {
     command: string;
-    action: Function;
+    action: (currentDir: string, ...args: string[]) => Promise<void | string>;
 }
 
 export class CommandRouter {
@@ -39,46 +39,44 @@ export class CommandRouter {
         this.register('decompress', decompressFile);
     }
 
-
-    register(command: string, action: Function): void {
+    register(command: string, action: (currentDir: string, ...args: string[]) => Promise<void | string>): void {
         this.routes.push({ command, action });
     }
 
     async executeCommand(command: string, currentDir: string, args: string[]): Promise<string | void> {
         const route = this.routes.find(route => route.command === command);
+
         if (!route) {
             console.log(`Command '${command}' not found.`);
             return;
         }
 
-        switch (command) {
-            case 'up':
-                return route.action(currentDir);
-            case 'cd':
-                return route.action(currentDir, args.join(' '));
-            case 'ls':
-                return await printFilesTable(currentDir);
-            case 'cat':
-                return route.action(currentDir, args.join(' '));
-            case 'add':
-            case 'mkdir':
-            case 'rm':
-                return route.action(currentDir, args.join(' '));
-            case 'rn':
-                return route.action(currentDir, args[0], args.slice(1).join(' '));
-            case 'cp':
-            case 'mv':
-                return route.action(currentDir, args[0], args.slice(1).join(' '));
-            case 'os':
-                return route.action(currentDir, args[0]);
-            case 'hash':
-                return route.action(currentDir, args.join(' '));
-            case 'compress':
-            case 'decompress':
-                return route.action(currentDir, args[0], args.slice(1).join(' '));
-            default:
-                console.log('Unknown command');
+        try {
+            switch (command) {
+                case 'up':
+                    return await route.action(currentDir);
+                case 'cd':
+                case 'cat':
+                case 'add':
+                case 'mkdir':
+                case 'rm':
+                case 'hash':
+                    return await route.action(currentDir, args.join(' '));
+                case 'rn':
+                case 'cp':
+                case 'mv':
+                case 'compress':
+                case 'decompress':
+                    return await route.action(currentDir, args[0], args.slice(1).join(' '));
+                case 'os':
+                    return await route.action(currentDir, args[0]);
+                case 'ls':
+                    return await printFilesTable(currentDir);
+                default:
+                    console.log('Unknown command');
+            }
+        } catch (error) {
+            console.error(`Error while executing command '${command}':`, (error as Error).message);
         }
-
     }
 }
